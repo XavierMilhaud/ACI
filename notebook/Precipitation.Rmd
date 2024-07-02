@@ -1,0 +1,133 @@
+---
+title: "Manual Tests"
+output: html_notebook
+---
+
+
+TEST DE LA CLASSE PRECIPITATION
+
+```{r}
+
+setwd("../..")
+source("./R/precipitationcomponent.R")
+
+# Utilisation de la classe PrecipitationComponent avec les paramètres définis par l'utilisateur
+precipitation_file <- "./data/required_data/1960-1970/ResPartOfParis_total_precipitation_1960-1970.nc"
+mask_file <- "./data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc"
+reference_period <- c("1960-01-01", "1964-12-31")
+rolling_window <- 5
+
+pc <- PrecipitationComponent$new(precipitation_file, mask_file, reference_period, rolling_window)
+pc$calculate_monthly_max()
+selected_latitude <- unique(pc$precip_masked_dt$latitude)[1]
+selected_longitude <- unique(pc$precip_masked_dt$longitude)[1]
+pc$visualize(selected_latitude, selected_longitude)
+
+# Tracer la carte de Rx5day pour une date spécifique
+pc$plot_rx5day_map(1967, 6)
+
+
+```
+
+TEST DE LA CLASSE DROUGHT
+
+```{r}
+
+
+setwd("../..")
+source("./R/droughtcomponent.R")
+
+
+# Exemple d'utilisation
+drought_component <- DroughtComponent$new(
+  precipitation_file = "./data/required_data/1960-1970/ResPartOfParis_total_precipitation_1960-1970.nc",
+  mask_file = "./data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc"
+)
+
+# Calculer les jours secs consécutifs
+drought_component$max_consecutive_dry_days()
+
+# Standardiser avec une période de référence définie par l'utilisateur
+drought_component$standardize_metric(reference_period = c("1960-01-01", "1964-12-31"))
+
+# Visualiser pour une latitude et une longitude spécifique
+drought_component$visualize(49.00, 1.00)
+
+
+
+```
+
+
+TEST DE LA CLASSE SEALEVEL
+
+```{r}
+
+# Charger le fichier getSeaLevelData.R
+setwd("../..")
+source("./R/sealevel.R")
+
+sl_component <- SeaLevelComponent$new(country_abrev = "FRA",
+  study_period = c("1960-01-01", "1969-12-31"),
+  reference_period = c("1960-01-01", "1964-12-31")
+)
+
+standardized_data <- sl_component$process()
+
+sl_component$plot_rolling_mean(standardized_data)
+
+```
+
+
+
+TEST DE LA CLASSE WindComponent
+
+
+```{r}
+setwd("../..")
+
+source("./R/windcomponent.R")
+
+# Exemple d'utilisation
+wind_component <- WindComponent$new(
+  u10_file = "./data/required_data/1960-1970/ResPartOfParis_10m_u_component_of_wind_1960-1970.nc",
+  v10_file = "./data/required_data/1960-1970/ResPartOfParis_10m_v_component_of_wind_1960-1970.nc",
+  mask_file = "./data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc",
+  reference_period = c("1960-01-01", "1964-12-31")
+)
+
+# Vérifier les fréquences d'excès de vent
+monthly_total_days_above <- wind_component$wind_exceedance_frequency(wind_component$reference_period)
+print(tail(monthly_total_days_above))
+
+# Tracer les résultats pour une latitude et une longitude données
+wind_component$plot_wind_exceedance_frequency(48.5, 2.0, wind_component$reference_period)
+
+# Tracer une carte de la fréquence d'excès de vent
+wind_component$plot_wind_exceedance_frequency_map(wind_component$reference_period)
+
+
+```
+
+
+
+TEST DE LA CLASSE Température 
+
+
+```{r}
+setwd("../..")
+source("./R/temperaturecomponent.R")
+
+# Exemple d'utilisation
+temperature_component <- TemperatureComponent$new(
+  temperature_file = "./data/required_data/1960-1970/ResPartOfParis_2m_temperature_1960-1970.nc",
+  mask_file = "./data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc",
+  reference_period = c("1960-01-01", "1964-12-31")
+)
+
+std_t90 <- temperature_component$std_t90(c("1960-01-01", "1964-12-31"))
+std_t10 <- temperature_component$std_t10(c("1960-01-01", "1964-12-31"))
+
+temperature_component$plot_standardized_components(std_t10, std_t90, 30)
+temperature_component$plot_standardized_components_simple(std_t10, std_t90)
+```
+

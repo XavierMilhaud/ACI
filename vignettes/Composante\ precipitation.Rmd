@@ -1,0 +1,158 @@
+---
+title: "ComponentsTests"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(ncdf4)
+library(data.table)
+library(zoo)
+library(lubridate)
+library(ggplot2)
+library(raster)
+```
+
+
+
+```{r}
+# Charger les fichiers NetCDF
+precipitation_file <- "ResPartOfParis_total_precipitation_1960-1970.nc"
+mask_file <- "countries_gridded_0.1deg_v0.1_FRo.nc"
+
+precip_nc <- nc_open(precipitation_file)
+mask_nc <- nc_open(mask_file)
+
+# Extraire les variables nécessaires
+tp <- ncvar_get(precip_nc, "tp")
+longitude <- ncvar_get(precip_nc, "longitude")
+latitude <- ncvar_get(precip_nc, "latitude")
+time <- ncvar_get(precip_nc, "time")
+
+# Vérifier l'origine du temps
+time_units <- ncatt_get(precip_nc, "time", "units")$value
+print(time_units)
+
+# Exemple : "hours since 1900-01-01 00:00:00"
+time_origin <- sub("hours since ", "", time_units)
+time_origin <- as.POSIXct(time_origin, tz = "UTC")
+
+# Convertir le temps en dates
+time_dates <- time_origin + hours(time)
+
+mask_data <- ncvar_get(mask_nc, "country")
+longitude_mask <- ncvar_get(mask_nc, "lon")
+latitude_mask <- ncvar_get(mask_nc, "lat")
+
+nc_close(precip_nc)
+nc_close(mask_nc)
+
+# Création d'un data.table pour la précipitation
+precip_dt <- data.table(
+  expand.grid(
+    longitude = longitude,
+    latitude = latitude,
+    time = time_dates
+  ),
+  tp = as.vector(tp)
+)
+
+# Création d'un data.table pour le masque
+mask_dt <- data.table(
+  expand.grid(
+    longitude = longitude_mask,
+    latitude = latitude_mask
+  ),
+  country = as.vector(mask_data)
+)
+
+# Fusionner les tables de précipitation et de masque
+setkey(precip_dt, longitude, latitude)
+setkey(mask_dt, longitude, latitude)
+
+precip_masked_dt <- merge(precip_dt, mask_dt, by = c("longitude", "latitude"), all.x = TRUE)
+
+# Application du masque avec un seuil de 0.8
+precip_masked_dt[, tp := ifelse(country >= 0.8, tp, NA)]
+
+# Vérifier les premières lignes des données après application du masque
+head(precip_masked_dt)
+
+# Vérification de la plage de temps
+print(range(precip_masked_dt$time))
+
+```
+```{r}
+# Calculer la somme glissante sur 5 jours
+precip_masked_dt <- precip_masked_dt[order(time)]
+precip_masked_dt[, tp_rolling := zoo::rollapply(tp, width = 5, FUN = sum, fill = NA, align = "right", na.rm = TRUE), by = .(longitude, latitude)]
+
+# Ajouter des colonnes pour l'année et le mois
+precip_masked_dt[, year := year(time)]
+precip_masked_dt[, month := month(time)]
+
+# Calculer le maximum mensuel
+monthly_max <- precip_masked_dt[, .(monthly_max = max(tp_rolling, na.rm = TRUE)), by = .(longitude, latitude, year, month)]
+
+# Vérification de la plage de temps après calcul du maximum mensuel
+print(range(monthly_max$year))
+
+# Calculer les statistiques de référence (1961-1990)
+reference_period <- monthly_max[year >= 1960 & year < 1965]
+reference_stats <- reference_period[, .(mean = mean(monthly_max, na.rm = TRUE), sd = sd(monthly_max, na.rm = TRUE)), by = month]
+
+# Fusionner les statistiques de référence avec les données mensuelles
+monthly_max <- merge(monthly_max, reference_stats, by = "month", all.x = TRUE)
+monthly_max[, rx5day := (monthly_max - mean) / sd]
+
+# Vérifier les premières lignes des données après calcul
+head(monthly_max)
+
+# Vérification de la plage de temps après calcul des anomalies
+print(range(monthly_max$year))
+```
+
+
+```{r}
+# Sélectionner une certaine latitude et longitude (par exemple, latitude[1] et longitude[1])
+selected_latitude <- unique(precip_masked_dt$latitude)[1]
+selected_longitude <- unique(precip_masked_dt$longitude)[1]
+
+# Filtrer les données pour la latitude et longitude sélectionnées
+location_data <- monthly_max[latitude == selected_latitude & longitude == selected_longitude]
+
+# Créer une colonne 'date' à partir de l'année et du mois
+location_data[, date := ymd(paste(year, month, "01", sep = "-"))]
+
+# Vérifier les premières lignes de location_data
+head(location_data)
+
+# Vérifier l'étendue des dates dans location_data
+print(range(location_data$date))
+
+# Visualisation de Rx5day pour la latitude et longitude sélectionnées
+ggplot(location_data, aes(x = date, y = rx5day)) +
+  geom_line() +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +  # Ajuster les étiquettes de l'axe x pour afficher les années
+  labs(title = paste("Rx5day for Latitude", selected_latitude, "and Longitude", selected_longitude),
+       x = "Time", y = "Rx5day") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+```{r}
+source("./R/precipitationcomponent.R")
+# Utilisation de la classe PrecipitationComponent
+precipitation_file <- "ResPartOfParis_total_precipitation_1960-1970.nc"
+mask_file <- "countries_gridded_0.1deg_v0.1_FRo.nc"
+
+pc <- PrecipitationComponent$new(precipitation_file, mask_file)
+pc$calculate_monthly_max()
+selected_latitude <- unique(pc$precip_masked_dt$latitude)[1]
+selected_longitude <- unique(pc$precip_masked_dt$longitude)[1]
+pc$visualize(selected_latitude, selected_longitude)
+
+```
