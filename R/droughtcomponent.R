@@ -40,11 +40,11 @@ DroughtComponent <- setRefClass(
       
       # Vérifier l'origine du temps
       time_units <- ncatt_get(.self$precip_nc, "time", "units")$value
-      time_origin <- sub("hours since ", "", time_units)
-      time_origin <- as.POSIXct(time_origin, tz = "UTC")
+      time_origin <- sub("days since ", "", time_units)
+      time_origin <- as.Date(time_origin, tz = "UTC")
       
       # Convertir le temps en dates
-      time_dates <- time_origin + hours(time)
+      time_dates <- time_origin + time
       
       mask_data <- ncvar_get(.self$mask_nc, "country")
       longitude_mask <- ncvar_get(.self$mask_nc, "lon")
@@ -131,5 +131,3 @@ DroughtComponent <- setRefClass(
     }
   )
 )
-
-

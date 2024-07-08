@@ -18,6 +18,17 @@ create_test_nc <- function(file_path, times, latitudes, longitudes, data) {
   nc_close(nc)
 }
 
+create_test_mask_nc <- function(file_path, latitudes, longitudes) {
+  lat_dim <- ncdim_def("lat", "degrees_north", vals = latitudes)
+  lon_dim <- ncdim_def("lon", "degrees_east", vals = longitudes)
+  
+  var_def <- ncvar_def("country", "1", list(lat_dim, lon_dim), -999, prec = "integer")
+  
+  nc <- nc_create(file_path, list(var_def))
+  ncvar_put(nc, var_def, matrix(1, nrow = length(latitudes), ncol = length(longitudes)))
+  nc_close(nc)
+}
+
 test_that("DroughtComponent: std_max_consecutive_dry_days method works correctly", {
   setUp <- function() {
     mask_path <- "test_mask.nc"
@@ -36,7 +47,7 @@ test_that("DroughtComponent: std_max_consecutive_dry_days method works correctly
     
     # Generating test mask data
     mask_data <- array(1, dim = c(length(latitudes), length(longitudes)))
-    create_test_nc(mask_path, as.Date("2000-01-01"), latitudes, longitudes, mask_data)
+    create_test_mask_nc(mask_path, latitudes, longitudes)
     
     list(mask_path = mask_path, data_path = data_path, reference_period = reference_period)
   }
@@ -57,16 +68,16 @@ test_that("DroughtComponent: std_max_consecutive_dry_days method works correctly
   expect_is(anomalies, "data.table")
   
   # Check the dimensions of the result
-  expect_true("time_day" %in% names(anomalies))
+  expect_true("date" %in% names(anomalies))  # Changed from "time_day" to "date"
   expect_true("latitude" %in% names(anomalies))
   expect_true("longitude" %in% names(anomalies))
   
   # Check that the result contains the correct time period
-  expect_true(min(anomalies$time_day) >= as.Date("2000-01-01"))
-  expect_true(max(anomalies$time_day) <= as.Date("2020-12-31"))
+  expect_true(min(anomalies$date) >= as.Date("2000-01-01"))
+  expect_true(max(anomalies$date) <= as.Date("2020-12-31"))
   
   # Ensure that the mean anomaly over the reference period is approximately zero
-  ref_anomalies <- anomalies[time_day >= as.Date(env$reference_period[1]) & time_day <= as.Date(env$reference_period[2])]
+  ref_anomalies <- anomalies[date >= as.Date(env$reference_period[1]) & date <= as.Date(env$reference_period[2])]
   mean_anomaly <- mean(ref_anomalies$standardized_dry_days, na.rm = TRUE)
   expect_false(is.na(mean_anomaly), info = "Mean anomaly should not be NaN.")
   expect_equal(mean_anomaly, 0, tolerance = 0.1)
@@ -92,7 +103,7 @@ test_that("DroughtComponent: no precipitation case", {
   create_test_nc(data_path, times, latitudes, longitudes, precipitation_data)
   
   mask_data <- array(1, dim = c(length(latitudes), length(longitudes)))
-  create_test_nc(mask_path, as.Date("2000-01-01"), latitudes, longitudes, mask_data)
+  create_test_mask_nc(mask_path, latitudes, longitudes)
   
   drought <- DroughtComponent$new(data_path, mask_path)
   drought$max_consecutive_dry_days()
@@ -118,7 +129,7 @@ test_that("DroughtComponent: constant precipitation case", {
   create_test_nc(data_path, times, latitudes, longitudes, precipitation_data)
   
   mask_data <- array(1, dim = c(length(latitudes), length(longitudes)))
-  create_test_nc(mask_path, as.Date("2000-01-01"), latitudes, longitudes, mask_data)
+  create_test_mask_nc(mask_path, latitudes, longitudes)
   
   drought <- DroughtComponent$new(data_path, mask_path)
   drought$max_consecutive_dry_days()
@@ -143,17 +154,17 @@ test_that("DroughtComponent: standardize_drought method works against precompute
     
     drought_component <- DroughtComponent$new(precipitation_path, mask_path)
     drought_component$max_consecutive_dry_days()
-    calculated_anomalies <- drought_component$standardize_metric(reference_period_bis)
+    drought_component$standardize_metric(reference_period_bis)
     
     reference_nc <- nc_open(reference_anomalies_path)
-    reference_data <- ncvar_get(reference_nc, "standardized_dry_days")
+    reference_data <- ncvar_get(reference_nc, "days_below_thresholds")
     reference_time <- ncvar_get(reference_nc, "time")
     reference_dates <- as.Date("1970-01-01") + reference_time
     
-    calculated_df <- data.table(time = calculated_anomalies$time_day, calculated_mean = calculated_anomalies$standardized_dry_days)
-    reference_df <- data.table(time = reference_dates, reference_mean = as.vector(reference_data))
+    calculated_df <- data.table(date = drought_component$standardized_dry_days_dt$date, calculated_mean = drought_component$standardized_dry_days_dt$standardized_dry_days)
+    reference_df <- data.table(date = reference_dates, reference_mean = as.vector(reference_data))
     
-    combined_df <- merge(calculated_df, reference_df, by = "time", all = FALSE)
+    combined_df <- merge(calculated_df, reference_df, by = "date", all = FALSE)
     combined_df[is.infinite(calculated_mean), calculated_mean := 1e10]
     combined_df[is.infinite(reference_mean), reference_mean := 1e10]
     
@@ -161,5 +172,17 @@ test_that("DroughtComponent: standardize_drought method works against precompute
   }
 })
 
+test_that("clean up test data files", {
+  mask_path <- "test_mask.nc"
+  data_path <- "test_data.nc"
+  
+  if (file.exists(data_path)) {
+    file.remove(data_path)
+  }
+  
+  if (file.exists(mask_path)) {
+    file.remove(mask_path)
+  }
+})
 
 
