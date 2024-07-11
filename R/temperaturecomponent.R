@@ -33,9 +33,10 @@ TemperatureComponent <- setRefClass(
       time <- ncvar_get(temperature_nc, "time")
       
       time_units <- ncatt_get(temperature_nc, "time", "units")$value
-      time_origin <- sub("hours since ", "", time_units)
-      time_origin <- as.POSIXct(time_origin, tz = "UTC")
-      time_dates <- time_origin + hours(time)
+      print(time_units)
+      time_origin <- sub("days since ", "", time_units)
+      time_origin <- as.Date(time_origin, format="%Y-%m-%d")
+      time_dates <- time_origin + time
       
       mask_data <- ncvar_get(mask_nc, "country")
       longitude_mask <- ncvar_get(mask_nc, "lon")
@@ -152,7 +153,7 @@ TemperatureComponent <- setRefClass(
       
       days_10_below_thresholds <- temperature_days_min[, .(days_below = as.numeric(ifelse(difference < 0, 1, 0))), by = .(longitude, latitude, time)]
       
-      tx10 <- days_10_below_thresholds[, .(frequency = sum(days_below, na.rm = TRUE) / .N), by = .(month = floor_date(time, "month"))]
+      tx10 <- days_10_below_thresholds[, .(frequency = sum(days_below, na.rm = TRUE) / .N), by = .(month =       floor_date(time, "month"))]
       
       temperature_nights_min <- .self$temp_extremum(.self$temperature_dt, "min")
       temperature_nights_min[, dayofyear := yday(time)]
@@ -203,6 +204,42 @@ TemperatureComponent <- setRefClass(
       return(standardized_t10)
     },
     
+    days_above_thresholds = function(reference_period) {
+      temperature_days_max <- .self$temp_extremum(.self$temperature_dt, "max")
+      temperature_days_max[, dayofyear := yday(time)]
+      temperature_days_max <- .self$convert_to_posixct(temperature_days_max)
+      
+      percentile_90_calendar_days <- .self$percentiles(.self$temperature_dt, 90, reference_period)
+      percentile_90_calendar_days <- .self$convert_to_posixct(percentile_90_calendar_days)
+      
+      percentile_90_calendar_days <- percentile_90_calendar_days[, .(longitude, latitude, dayofyear, percentile)]
+      temperature_days_max <- merge(temperature_days_max, percentile_90_calendar_days, by = c("longitude", "latitude", "dayofyear"), all.x = TRUE)
+      
+      temperature_days_max[, difference := temp_extremum - percentile]
+      temperature_days_max[, difference := as.double(difference)]
+      
+      days_above_thresholds <- temperature_days_max[, .(days_above = as.numeric(ifelse(difference > 0, 1, 0))), by = .(longitude, latitude, time)]
+      return(days_above_thresholds)
+    },
+    
+    days_below_thresholds = function(reference_period) {
+      temperature_days_min <- .self$temp_extremum(.self$temperature_dt, "min")
+      temperature_days_min[, dayofyear := yday(time)]
+      temperature_days_min <- .self$convert_to_posixct(temperature_days_min)
+      
+      percentile_10_calendar_days <- .self$percentiles(.self$temperature_dt, 10, reference_period)
+      percentile_10_calendar_days <- .self$convert_to_posixct(percentile_10_calendar_days)
+      
+      percentile_10_calendar_days <- percentile_10_calendar_days[, .(longitude, latitude, dayofyear, percentile)]
+      temperature_days_min <- merge(temperature_days_min, percentile_10_calendar_days, by = c("longitude", "latitude", "dayofyear"), all.x = TRUE)
+      
+      temperature_days_min[, difference := temp_extremum - percentile]
+      temperature_days_min[, difference := as.double(difference)]
+      
+      days_below_thresholds <- temperature_days_min[, .(days_below = as.numeric(ifelse(difference < 0, 1, 0))), by = .(longitude, latitude, time)]
+      return(days_below_thresholds)
+    },
+    
     plot_standardized_components = function(standardized_t10, standardized_t90, n) {
       standardized_t10[, month := as.Date(month)]
       standardized_t90[, month := as.Date(month)]
@@ -236,5 +273,3 @@ TemperatureComponent <- setRefClass(
     }
   )
 )
-
-
