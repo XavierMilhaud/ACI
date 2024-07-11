@@ -1,5 +1,3 @@
-# SeaLevelComponent.R
-
 library(httr)
 library(data.table)
 library(dplyr)
@@ -7,10 +5,11 @@ library(ggplot2)
 library(lubridate)
 library(zoo)
 
+setwd("../R")
 # Charger le fichier getSeaLevelData.R
-setwd("/home/dabakh/StageAI/mypackageR/R")
 source("getSeaLevelData.R")
 
+# SeaLevelComponent.R
 SeaLevelComponent <- setRefClass(
   "SeaLevelComponent",
   fields = list(
@@ -130,7 +129,7 @@ SeaLevelComponent <- setRefClass(
     },
     
     plot_rolling_mean = function(data, window = 60) {
-     
+      
       data$mean_value <- rowMeans(standardized_data[, -1, with = FALSE], na.rm = TRUE)
       ggplot(data, aes(x = Corrected_Date, y = mean_value)) +
         geom_line() +
