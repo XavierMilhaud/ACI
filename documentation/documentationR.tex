@@ -1,0 +1,349 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{hyperref}
+
+\title{Actuarial Climate Index: Documentation for R Scripts}
+\author{KANE Dabakh}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+The Actuarial Climate Index (ACI) project involves various calculations and data processing tasks related to climate variables such as temperature, precipitation, wind, and sea level. This document provides detailed documentation for the R scripts used in the ACI project. Each script is responsible for handling specific data processing tasks, and this document will describe their functionality, usage, and integration within the ACI framework.
+
+\section{ActuarialClimateIndex.R}
+\label{sec:aci}
+
+\subsection{Overview}
+The \texttt{ActuarialClimateIndex.R} script is the core component of the ACI project. It combines the outputs from various components (temperature, precipitation, wind, sea level, and drought) to calculate the overall Actuarial Climate Index, which serves as a measure of climate change-related risks.
+
+\subsection{Classes and Methods}
+
+\subsubsection{Class \texttt{ActuarialClimateIndex}}
+This class represents the Actuarial Climate Index, calculated from multiple climate components such as temperature, precipitation, drought, wind, and sea level.
+
+\textbf{Fields}:
+\begin{itemize}
+    \item \texttt{temperature\_component}: Component for temperature data.
+    \item \texttt{precipitation\_component}: Component for precipitation data.
+    \item \texttt{drought\_component}: Component for drought data.
+    \item \texttt{wind\_component}: Component for wind data.
+    \item \texttt{sealevel\_component}: Component for sea level data.
+    \item \texttt{study\_period}: Study period for analysis (vector of two dates).
+    \item \texttt{reference\_period}: Reference period for standardization (vector of two dates).
+\end{itemize}
+
+\textbf{Methods}:
+
+\begin{itemize}
+    \item \texttt{initialize(temperature\_data\_path, precipitation\_data\_path, wind\_u10\_data\_path, wind\_v10\_data\_path, country\_abbrev, mask\_data\_path, study\_period, reference\_period)}:
+        Initializes the \texttt{ActuarialClimateIndex} object with paths to the necessary data files and the study and reference periods.
+        
+    \item \texttt{calculate\_aci(factor = 1)}:
+        Calculates the Actuarial Climate Index using the initialized climate components.
+\end{itemize}
+
+\subsection{Example Usage}
+
+The following example demonstrates how to use the \texttt{ActuarialClimateIndex} class to calculate the ACI:
+
+\begin{verbatim}
+# Example usage
+temperature_data_path <- "../data/required_data/1960-1970/ResPartOfParis_2m_temperature_1960-1970.nc"
+precipitation_data_path <- "../data/required_data/1960-1970/ResPartOfParis_total_precipitation_1960-1970.nc"
+wind_u10_data_path <- "../data/required_data/1960-1970/ResPartOfParis_10m_u_component_of_wind_1960-1970.nc"
+wind_v10_data_path <- "../data/required_data/1960-1970/ResPartOfParis_10m_v_component_of_wind_1960-1970.nc"
+country_abbrev <- "FRA"
+mask_data_path <- "../data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc"
+study_period <- c('1960-01-01', '1969-12-31')
+reference_period <- c('1960-01-01', '1964-12-31')
+
+Indice <- ActuarialClimateIndex$new(
+  temperature_data_path,
+  precipitation_data_path,
+  wind_u10_data_path,
+  wind_v10_data_path,
+  country_abbrev,
+  mask_data_path,
+  study_period,
+  reference_period
+)
+
+aci_values <- Indice$calculate_aci()
+print(aci_values)
+\end{verbatim}
+
+\section{Precipitation Component Analysis}
+\label{sec:precipitationcomponent}
+
+\subsection{Overview}
+The \texttt{precipitationcomponent.R} script handles the analysis of precipitation data, focusing on extreme precipitation events and trends over time. This script is essential for understanding the impact of climate change on precipitation patterns.
+
+\subsection{Classes and Methods}
+
+\subsubsection{Class \texttt{PrecipitationComponent}}
+This class is used to analyze precipitation data, calculate monthly maximum anomalies, and visualize precipitation trends over time and space.
+
+\textbf{Fields}:
+\begin{itemize}
+    \item \texttt{precipitation\_file}: Path to the NetCDF file containing precipitation data.
+    \item \texttt{mask\_file}: Path to the NetCDF file containing mask data.
+    \item \texttt{reference\_period}: The reference period for calculating anomalies.
+    \item \texttt{rolling\_window}: The size of the rolling window for calculating the sum of precipitation.
+\end{itemize}
+
+\textbf{Methods}:
+
+\begin{itemize}
+    \item \texttt{initialize(precipitation\_file, mask\_file, reference\_period, rolling\_window)}:
+        Initializes the \texttt{PrecipitationComponent} with the specified parameters.
+
+    \item \texttt{calculate\_monthly\_max()}:
+        Calculates the monthly maximum precipitation anomalies.
+        
+    \item \texttt{visualize(selected\_latitude, selected\_longitude)}:
+        Visualizes the standardized monthly maximum precipitation anomalies for a specific location.
+
+    \item \texttt{plot\_rx5day\_map(year, month)}:
+        Plots a standardized anomaly map for a specific month and year.
+\end{itemize}
+
+\subsection{Example Usage}
+
+\begin{verbatim}
+# Example usage
+precipitation_file <- "./data/required_data/1960-1970/ResPartOfParis_total_precipitation_1960-1970.nc"
+mask_file <- "./data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc"
+reference_period <- c("1960-01-01", "1964-12-31")
+rolling_window <- 5
+
+pc <- PrecipitationComponent$new(precipitation_file, mask_file, reference_period, rolling_window)
+pc$calculate_monthly_max()
+selected_latitude <- unique(pc$precip_masked_dt$latitude)[1]
+selected_longitude <- unique(pc$precip_masked_dt$longitude)[1]
+pc$visualize(selected_latitude, selected_longitude)
+
+# Plot the Rx5day map for a specific date
+pc$plot_rx5day_map(1967, 6)
+\end{verbatim}
+
+\section{Drought Component Analysis}
+\label{sec:droughtcomponent}
+
+\subsection{Overview}
+The \texttt{droughtcomponent.R} script is designed to analyze drought conditions by processing precipitation data and calculating drought indices. It focuses on determining periods of prolonged dryness and their frequency over time.
+
+\subsection{Classes and Methods}
+
+\subsubsection{Class \texttt{DroughtComponent}}
+This class is used to handle drought data analysis based on precipitation data and a mask. It calculates and standardizes the maximum number of consecutive dry days, applies spatial masks, and visualizes standardized drought anomalies.
+
+\textbf{Fields}:
+\begin{itemize}
+    \item \texttt{precipitation\_file}: Path to the NetCDF file containing precipitation data.
+    \item \texttt{mask\_file}: Path to the NetCDF file containing mask data.
+    \item \texttt{reference\_period}: The reference period for calculating anomalies.
+\end{itemize}
+
+\textbf{Methods}:
+
+\begin{itemize}
+    \item \texttt{initialize(precipitation\_file, mask\_file, reference\_period)}:
+        Initializes the \texttt{DroughtComponent} with the specified parameters.
+    
+    \item \texttt{max\_consecutive\_dry\_days()}:
+        Calculates the maximum number of consecutive dry days.
+
+    \item \texttt{standardize\_metric(reference\_period)}:
+        Standardizes the drought metric based on the reference period.
+    
+    \item \texttt{visualize(selected\_latitude, selected\_longitude)}:
+        Visualizes standardized drought anomalies for a specific location.
+    
+    \item \texttt{plot\_anomaly\_map(month\_year)}:
+        Plots standardized drought anomaly maps for a specified month and year.
+\end{itemize}
+
+\subsection{Example Usage}
+
+\begin{verbatim}
+# Example usage
+drought_component <- DroughtComponent$new(
+  precipitation_file = "./data/required_data/1960-1970/ResPartOfParis_total_precipitation_1960-1970.nc",
+  mask_file = "./data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc"
+)
+
+# Calculate consecutive dry days
+drought_component$max_consecutive_dry_days()
+
+# Standardize using a defined reference period
+drought_component$standardize_metric(reference_period = c("1960-01-01", "1964-12-31"))
+
+# Visualize for a specific latitude and longitude
+drought_component$visualize(49.00, 1.00)
+
+drought_component$plot_anomaly_map("1963-01")
+\end{verbatim}
+
+\section{Sea Level Data Processing}
+\label{sec:sealevel}
+
+\subsection{Overview}
+The \texttt{sealevel.R} script is responsible for processing and analyzing sea level data within the Actuarial Climate Index framework. This script imports raw sea level data, applies necessary transformations, and calculates metrics relevant to the assessment of climate-related risks.
+
+\subsection{Classes and Methods}
+
+\subsubsection{Class \texttt{SeaLevelComponent}}
+This class processes and analyzes sea level data, computes monthly statistics, standardizes data, and visualizes sea level trends over time.
+
+\textbf{Fields}:
+\begin{itemize}
+    \item \texttt{country\_abrev}: Abbreviation for the country being analyzed.
+    \item \texttt{study\_period}: The start and end dates of the study period for analyzing sea level data.
+    \item \texttt{reference\_period}: The start and end dates of the reference period for calculating anomalies.
+    \item \texttt{directory}: The directory where sea level data files are stored.
+\end{itemize}
+
+\textbf{Methods}:
+
+\begin{itemize}
+    \item \texttt{initialize(country\_abrev, study\_period, reference\_period)}:
+        Initializes the \texttt{SeaLevelComponent} with the specified parameters.
+    \item \texttt{process()}:
+        Processes the sea level data by loading, correcting date format, cleaning, computing monthly statistics, and standardizing the data.
+    \item \texttt{plot\_rolling\_mean(data, window)}:
+        Plots the rolling mean of the standardized sea level data over a specified window.
+\end{itemize}
+
+\subsection{Example Usage}
+The following is an example of how to use the \texttt{sealevel.R} script to process sea level data and plot the rolling mean:
+
+\begin{verbatim}
+# Initialize the SeaLevelComponent with parameters
+sl_component <- SeaLevelComponent$new(
+  country_abrev = "FRA",
+  study_period = c("1960-01-01", "1969-12-31"),
+  reference_period = c("1960-01-01", "1964-12-31")
+)
+
+# Process the sea level data
+standardized_data <- sl_component$process()
+
+# Plot rolling mean of the standardized sea level data
+sl_component$plot_rolling_mean(standardized_data)
+\end{verbatim}
+
+\section{Wind Component Analysis}
+\label{sec:windcomponent}
+
+\subsection{Overview}
+The \texttt{windcomponent.R} script is designed to analyze wind data within the ACI framework. This script processes wind components (U and V) to calculate wind speed and direction, and identifies extreme wind events based on predefined thresholds.
+
+\subsection{Classes and Methods}
+
+\subsubsection{Class \texttt{WindComponent}}
+This class is used for analyzing wind data from NetCDF files, including calculating wind power, wind thresholds, days above thresholds, and wind exceedance frequency.
+
+\textbf{Fields}:
+\begin{itemize}
+    \item \texttt{u10\_file}: File path for the U component of wind.
+    \item \texttt{v10\_file}: File path for the V component of wind.
+    \item \texttt{mask\_file}: File path for the mask file.
+    \item \texttt{reference\_period}: Reference period for calculating statistics.
+\end{itemize}
+
+\textbf{Methods}:
+
+\begin{itemize}
+    \item \texttt{initialize(u10\_file, v10\_file, mask\_file, reference\_period)}: Initializes the \texttt{WindComponent} with the specified parameters.
+        
+    \item \texttt{wind\_power()}: Calculates wind power from U and V wind components.
+    
+    \item \texttt{wind\_thresholds(reference\_period)}: Calculates wind power thresholds based on the reference period.
+    
+    \item \texttt{wind\_exceedance\_frequency(reference\_period)}: Calculates wind exceedance frequency based on thresholds.
+    
+    \item \texttt{std\_wind\_exceedance\_frequency(reference\_period)}: Calculates standardized wind exceedance frequency.
+\end{itemize}
+
+\subsection{Example Usage}
+
+\begin{verbatim}
+# Example usage
+wind_component <- WindComponent$new(
+    u10_file = "./data/required_data/1960-1970/ResPartOfParis_10m_u_component_of_wind_1960-1970.nc",
+    v10_file = "./data/required_data/1960-1970/ResPartOfParis_10m_v_component_of_wind_1960-1970.nc",
+    mask_file = "./data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc",
+    reference_period = c("1960-01-01", "1964-12-31")
+)
+
+# Calculate wind exceedance frequency
+wind_exceedance_frequency <- wind_component$wind_exceedance_frequency(reference_period)
+
+# Plot wind exceedance frequency for a specific location
+wind_component$plot_wind_exceedance_frequency(lat = 48.5, lon = 2.0, reference_period)
+
+# Plot a map of wind exceedance frequency
+wind_component$plot_wind_exceedance_frequency_map(reference_period)
+\end{verbatim}
+
+\section{Temperature Component Analysis}
+\label{sec:temperaturecomponent}
+
+\subsection{Overview}
+The \texttt{temperaturecomponent.R} script handles the analysis of temperature data within the ACI project. It focuses on calculating temperature extremes and trends over time, particularly the number of days exceeding certain temperature thresholds.
+
+\subsection{Classes and Methods}
+
+\subsubsection{Class \texttt{TemperatureComponent}}
+This class is for processing and analyzing temperature data from NetCDF files.
+
+\textbf{Fields}:
+\begin{itemize}
+    \item \texttt{temperature\_file}: Path to the NetCDF file containing temperature data.
+    \item \texttt{mask\_file}: Path to the NetCDF file containing mask data.
+    \item \texttt{reference\_period}: Reference period used for calculating anomalies.
+\end{itemize}
+
+\textbf{Methods}:
+
+\begin{itemize}
+    \item \texttt{initialize(temperature\_file, mask\_file, reference\_period)}: Initializes the \texttt{TemperatureComponent} with the specified parameters.
+    
+    \item \texttt{std\_t90(reference\_period)}: Standardizes the T90 metric over a reference period.
+    
+    \item \texttt{std\_t10(reference\_period)}: Standardizes the T10 metric over a reference period.
+    
+    \item \texttt{plot\_standardized\_components(standardized\_t10, standardized\_t90, n)}: Plots the rolling mean of standardized T10 and T90 over time.
+    
+    \item \texttt{plot\_standardized\_components\_simple(standardized\_t90, standardized\_t10)}: Plots the standardized T90 and T10 over time.
+\end{itemize}
+
+\subsection{Example Usage}
+
+\begin{verbatim}
+# Example usage
+temperature_component <- TemperatureComponent$new(
+    temperature_file = "./data/required_data/1960-1970/ResPartOfParis_2m_temperature_1960-1970.nc",
+    mask_file = "./data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc",
+    reference_period = c("1960-01-01", "1964-12-31")
+)
+
+std_t90 <- temperature_component$std_t90(c("1960-01-01", "1964-12-31"))
+std_t10 <- temperature_component$std_t10(c("1960-01-01", "1964-12-31"))
+
+# Plot standardized components
+temperature_component$plot_standardized_components(std_t10, std_t90, 30)
+\end{verbatim}
+
+\section{Conclusion}
+This document provides comprehensive documentation for the R scripts used in the Actuarial Climate Index project. Each script plays a vital role in processing and analyzing climate data, contributing to the overall calculation of the ACI. The documentation details the purpose, functionality, and usage of each script, ensuring that users can effectively understand and utilize the tools provided by the ACI project.
+
+\end{document}
