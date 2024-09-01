@@ -8,10 +8,12 @@ TEST DE LA CLASSE PRECIPITATION
 
 ```{r}
 
-setwd("../..")
+setwd("../")
 source("./R/precipitationcomponent.R")
+getwd()
 
 # Utilisation de la classe PrecipitationComponent avec les paramètres définis par l'utilisateur
+
 precipitation_file <- "./data/required_data/1960-1970/ResPartOfParis_total_precipitation_1960-1970.nc"
 mask_file <- "./data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc"
 reference_period <- c("1960-01-01", "1964-12-31")
@@ -26,15 +28,20 @@ pc$visualize(selected_latitude, selected_longitude)
 # Tracer la carte de Rx5day pour une date spécifique
 pc$plot_rx5day_map(1967, 6)
 
-
+pc$monthly_max
 ```
+
+
+
+
+
 
 TEST DE LA CLASSE DROUGHT
 
 ```{r}
 
 
-setwd("../..")
+setwd("../")
 source("./R/droughtcomponent.R")
 
 
@@ -53,9 +60,11 @@ drought_component$standardize_metric(reference_period = c("1960-01-01", "1964-12
 # Visualiser pour une latitude et une longitude spécifique
 drought_component$visualize(49.00, 1.00)
 
-
+drought_component$plot_anomaly_map("1963-01")
+drought_component$standardized_dry_days_dt
 
 ```
+
 
 
 TEST DE LA CLASSE SEALEVEL
@@ -63,7 +72,7 @@ TEST DE LA CLASSE SEALEVEL
 ```{r}
 
 # Charger le fichier getSeaLevelData.R
-setwd("../..")
+setwd("../")
 source("./R/sealevel.R")
 
 sl_component <- SeaLevelComponent$new(country_abrev = "FRA",
@@ -75,6 +84,7 @@ standardized_data <- sl_component$process()
 
 sl_component$plot_rolling_mean(standardized_data)
 
+standardized_data
 ```
 
 
@@ -83,28 +93,37 @@ TEST DE LA CLASSE WindComponent
 
 
 ```{r}
-setwd("../..")
-
+setwd("../")
 source("./R/windcomponent.R")
 
-# Exemple d'utilisation
+# Exemple d'utilisation de la classe WindComponent
 wind_component <- WindComponent$new(
   u10_file = "./data/required_data/1960-1970/ResPartOfParis_10m_u_component_of_wind_1960-1970.nc",
   v10_file = "./data/required_data/1960-1970/ResPartOfParis_10m_v_component_of_wind_1960-1970.nc",
-  mask_file = "./data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc",
-  reference_period = c("1960-01-01", "1964-12-31")
+  mask_file = "./data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc"
 )
 
-# Vérifier les fréquences d'excès de vent
-monthly_total_days_above <- wind_component$wind_exceedance_frequency(wind_component$reference_period)
-print(tail(monthly_total_days_above))
+# Définir la période de référence
+reference_period <- c("1960-01-01", "1964-12-31")
+
+# Calculer et vérifier les fréquences d'excès de vent
+wind_exceedance_frequency <- wind_component$wind_exceedance_frequency(reference_period)
+print(tail(wind_exceedance_frequency))
+
+print(head(wind_component$wind_power_dt))
+print(head(wind_component$wind_thresholds_dt))
 
 # Tracer les résultats pour une latitude et une longitude données
-wind_component$plot_wind_exceedance_frequency(48.5, 2.0, wind_component$reference_period)
+wind_component$plot_wind_exceedance_frequency(lat = 48.5, lon = 2.0, reference_period)
 
 # Tracer une carte de la fréquence d'excès de vent
-wind_component$plot_wind_exceedance_frequency_map(wind_component$reference_period)
+wind_component$plot_wind_exceedance_frequency_map(reference_period)
 
+# Calculer la fréquence d'excès de vent standardisée
+std_exceedance_frequency <- wind_component$std_wind_exceedance_frequency(reference_period)
+print(std_exceedance_frequency)
+
+std_exceedance_frequency
 
 ```
 
@@ -114,7 +133,7 @@ TEST DE LA CLASSE Température
 
 
 ```{r}
-setwd("../..")
+setwd("../")
 source("./R/temperaturecomponent.R")
 
 # Exemple d'utilisation
@@ -129,5 +148,44 @@ std_t10 <- temperature_component$std_t10(c("1960-01-01", "1964-12-31"))
 
 temperature_component$plot_standardized_components(std_t10, std_t90, 30)
 temperature_component$plot_standardized_components_simple(std_t10, std_t90)
+
+std_t10
+std_t90
+```
+
+
+
+Test de l'INDICE GLOBAL 
+
+
+```{r}
+setwd("../")
+source("./R/ActuarialClimateIndex.R")
+
+temperature_data_path <- "../data/required_data/1960-1970/ResPartOfParis_2m_temperature_1960-1970.nc"
+precipitation_data_path <- "../data/required_data/1960-1970/ResPartOfParis_total_precipitation_1960-1970.nc"
+wind_u10_data_path <- "../data/required_data/1960-1970/ResPartOfParis_10m_u_component_of_wind_1960-1970.nc"
+wind_v10_data_path <- "../data/required_data/1960-1970/ResPartOfParis_10m_v_component_of_wind_1960-1970.nc"
+country_abbrev <- "FRA"
+mask_data_path <- "../data/required_data/countries_gridded_0.1deg_v0.1_FRo.nc"
+study_period <- c('1960-01-01', '1969-12-31')
+reference_period <- c('1960-01-01', '1964-12-31')
+
+
+Indice <- ActuarialClimateIndex$new(
+  temperature_data_path,
+  precipitation_data_path,
+  wind_u10_data_path,
+  wind_v10_data_path,
+  country_abbrev,
+  mask_data_path,
+  study_period = c('1960-01-01', '1969-12-31'),
+  reference_period = c('1960-01-01', '1964-12-31')
+)
+
+aci_values <- Indice$calculate_aci()
+print(aci_values)
+
+
 ```
 
