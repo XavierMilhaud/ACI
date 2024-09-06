@@ -4,10 +4,9 @@ library(dplyr)
 library(ggplot2)
 library(lubridate)
 library(zoo)
+library(here)
 
-# Charger le fichier getSeaLevelData.R
-#setwd("../")
-source("getSeaLevelData.R")
+source(here("R","getSeaLevelData.R"))
 
 #' SeaLevelComponent Class
 #'

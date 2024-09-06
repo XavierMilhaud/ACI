@@ -1,53 +1,53 @@
 library(data.table)
 library(lubridate)
 library(zoo)
+library(here)
 
-setwd("./R")
-# Assurez-vous que les fichiers des composants sont chargés
-source("temperaturecomponent.R")
-source("precipitationcomponent.R")
-source("droughtcomponent.R")
-source("windcomponent.R")
-source("sealevel.R")
+# Ensure the component files are loaded
+source(here("R","temperaturecomponent.R"))
+source(here("R","precipitationcomponent.R"))
+source(here("R","droughtcomponent.R"))
+source(here("R","windcomponent.R"))
+source(here("R","sealevel.R"))
 
-#' Classe ActuarialClimateIndex
+#' ActuarialClimateIndex Class
 #'
-#' Cette classe représente l'indice climatique actuariel, qui est calculé à partir de plusieurs composants climatiques tels que la température, les précipitations, la sécheresse, le vent, et le niveau de la mer.
+#' This class represents the Actuarial Climate Index, which is calculated from several climate components such as temperature, precipitation, drought, wind, and sea level.
 #'
-#' @field temperature_component Composant température de type ANY
-#' @field precipitation_component Composant précipitation de type ANY
-#' @field drought_component Composant sécheresse de type ANY
-#' @field wind_component Composant vent de type ANY
-#' @field sealevel_component Composant niveau de la mer de type ANY
-#' @field study_period Période d'étude pour l'analyse (vecteur de deux dates)
-#' @field reference_period Période de référence pour la standardisation (vecteur de deux dates)
+#' @field temperature_component Temperature component of type ANY
+#' @field precipitation_component Precipitation component of type ANY
+#' @field drought_component Drought component of type ANY
+#' @field wind_component Wind component of type ANY
+#' @field sealevel_component Sea level component of type ANY
+#' @field study_period Study period for analysis (vector of two dates)
+#' @field reference_period Reference period for standardization (vector of two dates)
 
 ActuarialClimateIndex <- setRefClass(
   "ActuarialClimateIndex",
   fields = list(
-    temperature_component = "ANY",  # Composant température
-    precipitation_component = "ANY",  # Composant précipitation
-    drought_component = "ANY",  # Composant sécheresse
-    wind_component = "ANY",  # Composant vent
-    sealevel_component = "ANY",  # Composant niveau de la mer
-    study_period = "character",  # Période d'étude
-    reference_period = "character"  # Période de référence
+    temperature_component = "ANY",  # Temperature component
+    precipitation_component = "ANY",  # Precipitation component
+    drought_component = "ANY",  # Drought component
+    wind_component = "ANY",  # Wind component
+    sealevel_component = "ANY",  # Sea level component
+    study_period = "character",  # Study period
+    reference_period = "character"  # Reference period
   ),
   methods = list(
     #' Initialize ActuarialClimateIndex object
     #'
-    #' Cette méthode initialise un objet de la classe ActuarialClimateIndex avec les chemins des fichiers de données nécessaires et les périodes d'étude et de référence.
+    #' This method initializes an object of the ActuarialClimateIndex class with the necessary data file paths and study/reference periods.
     #'
-    #' @param temperature_data_path Chemin vers le fichier de données de température
-    #' @param precipitation_data_path Chemin vers le fichier de données de précipitation
-    #' @param wind_u10_data_path Chemin vers le fichier de données du composant U du vent
-    #' @param wind_v10_data_path Chemin vers le fichier de données du composant V du vent
-    #' @param country_abbrev Abréviation du pays pour le niveau de la mer
-    #' @param mask_data_path Chemin vers le fichier de masque géographique
-    #' @param study_period Période d'étude pour l'analyse (vecteur de deux dates)
-    #' @param reference_period Période de référence pour la standardisation (vecteur de deux dates)
+    #' @param temperature_data_path Path to the temperature data file
+    #' @param precipitation_data_path Path to the precipitation data file
+    #' @param wind_u10_data_path Path to the U component wind data file
+    #' @param wind_v10_data_path Path to the V component wind data file
+    #' @param country_abbrev Country abbreviation for sea level data
+    #' @param mask_data_path Path to the geographical mask file
+    #' @param study_period Study period for analysis (vector of two dates)
+    #' @param reference_period Reference period for standardization (vector of two dates)
     #'
-    #' @return Un nouvel objet ActuarialClimateIndex
+    #' @return A new ActuarialClimateIndex object
     
     initialize = function(temperature_data_path, precipitation_data_path,
                           wind_u10_data_path, wind_v10_data_path,
@@ -90,15 +90,15 @@ ActuarialClimateIndex <- setRefClass(
     
     #' Calculate Actuarial Climate Index
     #'
-    #' Cette méthode calcule l'indice climatique actuariel (ACI) en utilisant les données des différents composants climatiques initialisés.
+    #' This method calculates the Actuarial Climate Index (ACI) using the initialized climate components.
     #'
-    #' @param factor Facteur d'ajustement pour le niveau de la mer
+    #' @param factor Adjustment factor for sea level
     #'
-    #' @return Un data.table contenant les valeurs calculées de l'indice climatique actuariel (ACI)
+    #' @return A data.table containing the calculated values of the Actuarial Climate Index (ACI)
     
     calculate_aci = function(factor = 1) {
       
-      # Exécution des calculs nécessaires avec les composants initialisés
+      # Execute necessary calculations with the initialized components
       preci_std <- .self$precipitation_component$calculate_monthly_max()
       p_dt <- preci_std[, .(year, month, latitude, longitude, precipitation = rx5day)]
       
@@ -118,7 +118,7 @@ ActuarialClimateIndex <- setRefClass(
       
       sea_lev <- .self$sealevel_component$process()
       
-      # Sélectionner les colonnes Measurement_* et calculer leur moyenne
+      # Select the Measurement_* columns and calculate their mean
       measurement_cols <- grep("^Measurement_", colnames(sea_lev), value = TRUE)
       sea_lev[, sea_mean := rowMeans(.SD, na.rm = TRUE), .SDcols = measurement_cols]
       sea_lev <- sea_lev[, .(Corrected_Date, sea_mean)]
@@ -137,7 +137,7 @@ ActuarialClimateIndex <- setRefClass(
       df4 <- merge(df3, t90_dt, by = c("year", "month"), all = TRUE)
       aci_composites <- merge(df4, t10_dt, by = c("year", "month"), all = TRUE)
       
-      # Calculer l'ACI
+      # Calculate the ACI
       aci_composites[, ACI := (T90 - T10 + precipitation + drought + factor * sea_mean + windpower) / 6]
       aci_composites <- aci_composites[, .(year, month, latitude, longitude, windpower, precipitation, drought, T10, T90, sea_mean, ACI)]
       
