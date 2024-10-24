@@ -1,0 +1,16 @@
+Package: ACI
+Title: Package ACI for Actuarial Climate Index
+Version: 0.1.1
+Authors@R: c(
+    person("Dabakh", "Kane", , "kanedabakh55@gmail.com", role = c("aut", "ctb")),
+    person("Esteban", "Mauboussin", , "esteban.mauboussin@cnp.fr", role = "ctb"),
+    person("Xavier", "Milhaud", , "xavier.milhaud.research@gmail.com", role = c("cre", "ctb"))
+  )
+Description: This package implements several methods that enable to
+    compute the Actuarial Climate Index on different regions.
+License: GPL (>= 3)
+URL: https://github.com/XavierMilhaud/ACI-Rpackage
+BugReports: https://github.com/XavierMilhaud/ACI-Rpackage/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
