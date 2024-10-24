@@ -14,3 +14,14 @@ BugReports: https://github.com/XavierMilhaud/ACI-Rpackage/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
+Imports: 
+    data.table,
+    dplyr,
+    ecmwfr,
+    ggplot2,
+    methods,
+    ncdf4,
+    RcppRoll,
+    reticulate
+Suggests: 
+    here
