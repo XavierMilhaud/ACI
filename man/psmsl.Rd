@@ -3,7 +3,7 @@
 \docType{data}
 \name{psmsl}
 \alias{psmsl}
-\title{PSMSL datasets on Sea Levels}
+\title{A dataset on sea levels}
 \format{
 \subsection{\code{psmsl}}{
 
@@ -22,12 +22,12 @@ A data table (and thus also data frame) with 1,585 rows and 9 columns:
 }
 }
 \source{
-\url{https://psmsl.org/data/obtaining/}
+\url{http://psmsl.org/data/obtaining/}
 }
 \usage{
 psmsl
 }
 \description{
-An example of datasets extracted from website giving...
+Permanent Service for Mean Sea Level (PSMSL): Tide Gauge Data (2023).
 }
 \keyword{datasets}

@@ -1,7 +1,7 @@
 
 utils::globalVariables(c("Country"))
 
-admixStartupMessage <- function()
+aciStartupMessage <- function()
 {
   msg <- c(paste0(
     "This is package ACI, version ",
@@ -15,12 +15,12 @@ admixStartupMessage <- function()
 
 .onAttach <- function(lib, pkg)
 {
-  # unlock .admix variable allowing its modification
-  #unlockBinding(".admix", asNamespace("admix"))
+  # unlock .aci variable allowing its modification
+  #unlockBinding(".ACI", asNamespace("ACI"))
   # startup message
-  msg <- admixStartupMessage()
+  msg <- aciStartupMessage()
   if(!interactive())
-    msg[1] <- paste("Package 'admix' version", packageVersion("admix"))
+    msg[1] <- paste("Package 'ACI' version", packageVersion("ACI"))
   base::packageStartupMessage(msg)
   base::invisible()
 }

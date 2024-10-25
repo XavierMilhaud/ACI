@@ -1,6 +1,6 @@
-#' PSMSL datasets on Sea Levels
+#' A dataset on sea levels
 #'
-#' An example of datasets extracted from website giving...
+#' Permanent Service for Mean Sea Level (PSMSL): Tide Gauge Data (2023).
 #'
 #' @format ## `psmsl`
 #' A data table (and thus also data frame) with 1,585 rows and 9 columns:
@@ -15,5 +15,5 @@
 #'   \item{Coastline}{(Character) The code of the coastline}
 #'   \item{Station}{(Character) The station id}
 #' }
-#' @source <https://psmsl.org/data/obtaining/>
+#' @source <http://psmsl.org/data/obtaining/>
 "psmsl"
