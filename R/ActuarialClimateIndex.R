@@ -1,4 +1,3 @@
-library(data.table)
 
 #' ActuarialClimateIndex Class
 #'
