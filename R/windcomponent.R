@@ -1,7 +1,4 @@
-library(ncdf4)
-library(lubridate)
 library(data.table)
-library(ggplot2)
 
 #' WindComponent Class
 #'
@@ -44,29 +41,29 @@ WindComponent <- setRefClass(
       .self$load_data()
       .self$apply_mask()
     },
-    
+
     #' Load data from NetCDF files
     #'
     #' Loads u10, v10, and mask data from the specified NetCDF files and stores them in data tables.
     load_data = function() {
-      u10_nc <- nc_open(.self$u10_file)
-      v10_nc <- nc_open(.self$v10_file)
-      mask_nc <- nc_open(.self$mask_file)
-      
-      u10 <- ncvar_get(u10_nc, "u10")
-      v10 <- ncvar_get(v10_nc, "v10")
-      longitude <- ncvar_get(u10_nc, "longitude")
-      latitude <- ncvar_get(u10_nc, "latitude")
-      time <- ncvar_get(u10_nc, "time")
-      
-      time_units <- ncatt_get(u10_nc, "time", "units")$value
+      u10_nc <- ncdf4::nc_open(.self$u10_file)
+      v10_nc <- ncdf4::nc_open(.self$v10_file)
+      mask_nc <- ncdf4::nc_open(.self$mask_file)
+
+      u10 <- ncdf4::ncvar_get(u10_nc, "u10")
+      v10 <- ncdf4::ncvar_get(v10_nc, "v10")
+      longitude <- ncdf4::ncvar_get(u10_nc, "longitude")
+      latitude <- ncdf4::ncvar_get(u10_nc, "latitude")
+      time <- ncdf4::ncvar_get(u10_nc, "time")
+
+      time_units <- ncdf4::ncatt_get(u10_nc, "time", "units")$value
       if (grepl("since", time_units)) {
         time_origin <- sub(".*since ", "", time_units)
         if (grepl("days", time_units)) {
           time_dates <- as.Date(time, origin = as.Date(time_origin))
         } else if (grepl("hours", time_units)) {
           time_origin <- as.POSIXct(time_origin, tz = "UTC")
-          time_dates <- time_origin + hours(time)
+          time_dates <- time_origin + lubridate::hours(time)
           time_dates <- as.Date(time_dates)
         } else {
           stop("Unsupported time units: ", time_units)
@@ -74,16 +71,16 @@ WindComponent <- setRefClass(
       } else {
         stop("Unexpected time format in NetCDF file")
       }
-      
-      mask_data <- ncvar_get(mask_nc, "country")
-      longitude_mask <- ncvar_get(mask_nc, "lon")
-      latitude_mask <- ncvar_get(mask_nc, "lat")
-      
-      nc_close(u10_nc)
-      nc_close(v10_nc)
-      nc_close(mask_nc)
-      
-      .self$u10_dt <- data.table(
+
+      mask_data <- ncdf4::ncvar_get(mask_nc, "country")
+      longitude_mask <- ncdf4::ncvar_get(mask_nc, "lon")
+      latitude_mask <- ncdf4::ncvar_get(mask_nc, "lat")
+
+      ncdf4::nc_close(u10_nc)
+      ncdf4::nc_close(v10_nc)
+      ncdf4::nc_close(mask_nc)
+
+      .self$u10_dt <- data.table::data.table(
         expand.grid(
           longitude = longitude,
           latitude = latitude,
@@ -91,8 +88,8 @@ WindComponent <- setRefClass(
         ),
         u10 = as.vector(u10)
       )
-      
-      .self$v10_dt <- data.table(
+
+      .self$v10_dt <- data.table::data.table(
         expand.grid(
           longitude = longitude,
           latitude = latitude,
@@ -100,8 +97,8 @@ WindComponent <- setRefClass(
         ),
         v10 = as.vector(v10)
       )
-      
-      .self$mask_dt <- data.table(
+
+      .self$mask_dt <- data.table::data.table(
         expand.grid(
           longitude = longitude_mask,
           latitude = latitude_mask
@@ -109,34 +106,35 @@ WindComponent <- setRefClass(
         country = as.vector(mask_data)
       )
     },
-    
+
     #' Apply mask to wind data
     #'
     #' Applies the mask data to u10 and v10 data tables, removing rows where the mask value is below 0.8.
     apply_mask = function() {
-      setkey(.self$u10_dt, longitude, latitude)
-      setkey(.self$v10_dt, longitude, latitude)
-      setkey(.self$mask_dt, longitude, latitude)
-      
-      u10_masked_dt <- merge(.self$u10_dt, .self$mask_dt, by = c("longitude", "latitude"), all.x = TRUE)
-      v10_masked_dt <- merge(.self$v10_dt, .self$mask_dt, by = c("longitude", "latitude"), all.x = TRUE)
-      
+      data.table::setkey(.self$u10_dt, longitude, latitude)
+      data.table::setkey(.self$v10_dt, longitude, latitude)
+      data.table::setkey(.self$mask_dt, longitude, latitude)
+
+      u10_masked_dt <- data.table::merge(.self$u10_dt, .self$mask_dt, by = c("longitude", "latitude"), all.x = TRUE)
+      v10_masked_dt <- data.table::merge(.self$v10_dt, .self$mask_dt, by = c("longitude", "latitude"), all.x = TRUE)
+
       u10_masked_dt[, u10 := ifelse(country >= 0.8, u10, NA)]
       v10_masked_dt[, v10 := ifelse(country >= 0.8, v10, NA)]
-      
-      .self$u10_dt <- unique(u10_masked_dt)
-      .self$v10_dt <- unique(v10_masked_dt)
+
+      .self$u10_dt <- data.table::unique(u10_masked_dt)
+      .self$v10_dt <- data.table::unique(v10_masked_dt)
     },
-    
+
     #' Remove duplicates from data table
     #'
     #' @param dt Data.table. The data table from which duplicates are to be removed.
     #' @return Data.table. Data table with duplicates removed.
+    #'
     remove_duplicates = function(dt) {
-      dt <- dt[!duplicated(dt, by = c("longitude", "latitude", "time"))]
+      dt <- dt[!data.table::duplicated(dt, by = c("longitude", "latitude", "time"))]
       return(dt)
     },
-    
+
     #' Calculate wind power
     #'
     #' @param reference_period Character vector. Optional reference period to filter data by date.
@@ -144,73 +142,77 @@ WindComponent <- setRefClass(
     wind_power = function(reference_period = NULL) {
       .self$u10_dt <- .self$remove_duplicates(.self$u10_dt)
       .self$v10_dt <- .self$remove_duplicates(.self$v10_dt)
-      
-      merged_dt <- merge(.self$u10_dt, .self$v10_dt, by = c("longitude", "latitude", "time"), allow.cartesian = FALSE)
-      
+
+      merged_dt <- data.table::merge(.self$u10_dt, .self$v10_dt,
+                                     by = c("longitude", "latitude", "time"), allow.cartesian = FALSE)
       merged_dt[, ws := sqrt(u10^2 + v10^2)]
       rho <- 1.23
       merged_dt[, wind_power := 0.5 * rho * ws^3]
-      
+
       .self$wind_power_dt <- merged_dt[, .(time, longitude, latitude, wind_power)]
-      
+
       if (!is.null(reference_period)) {
-        .self$wind_power_dt <- .self$wind_power_dt[time >= as.Date(reference_period[1]) & time <= as.Date(reference_period[2])]
+        .self$wind_power_dt <- .self$wind_power_dt[time >= as.Date(reference_period[1]) &
+                                                     time <= as.Date(reference_period[2])]
       }
-      
       return(.self$wind_power_dt)
     },
-    
+
     #' Calculate wind power thresholds
     #'
     #' @param reference_period Character vector. Reference period for calculating thresholds.
     #' @return Data.table. Wind power thresholds data table.
+    #'
     wind_thresholds = function(reference_period) {
       wind_power_dt <- .self$wind_power(reference_period)
       wind_power_dt[, dayofyear := yday(time)]
-      
+
       reference_stats <- wind_power_dt[, .(
-        mean_power = mean(wind_power, na.rm = TRUE), 
+        mean_power = mean(wind_power, na.rm = TRUE),
         std_power = sd(wind_power, na.rm = TRUE)
       ), by = .(dayofyear, latitude, longitude)]
-      
+
       reference_stats[, threshold := mean_power + 1.28 * std_power]
-      
+
       .self$wind_thresholds_dt <- reference_stats[, .(dayofyear, latitude, longitude, threshold)]
       return(.self$wind_thresholds_dt)
     },
-    
+
     #' Calculate days above wind power thresholds
     #'
     #' @param reference_period Character vector. Reference period for calculating days above thresholds.
     #' @return Data.table. Days above threshold data table.
+    #'
     days_above_thresholds = function(reference_period) {
       wind_thresholds <- .self$wind_thresholds(reference_period)
       wind_power_dt <- .self$wind_power()
       wind_power_dt[, dayofyear := yday(time)]
-      days_above <- merge(wind_power_dt, wind_thresholds, by = c("dayofyear", "latitude", "longitude"), allow.cartesian = FALSE)
-      
+      days_above <- data.table::merge(wind_power_dt, wind_thresholds,
+                                      by = c("dayofyear", "latitude", "longitude"), allow.cartesian = FALSE)
       days_above[, days_above_threshold := ifelse(wind_power > threshold, 1, 0)]
-      
+
       return(days_above[, .(time, latitude, longitude, days_above_threshold)])
     },
-    
+
     #' Calculate wind exceedance frequency
     #'
     #' @param reference_period Character vector. Reference period for calculating exceedance frequency.
     #' @return Data.table. Wind exceedance frequency data table.
+    #'
     wind_exceedance_frequency = function(reference_period) {
       days_above_dt <- .self$days_above_thresholds(reference_period)
-      days_above_dt[, year_month := floor_date(time, "month")]
+      days_above_dt[, year_month := lubridate::floor_date(time, "month")]
       exceedance_freq <- days_above_dt[, .(
         exceedance_frequency = sum(days_above_threshold, na.rm = TRUE) / .N
       ), by = .(year_month, latitude, longitude)]
       return(exceedance_freq)
     },
-    
+
     #' Calculate standardized wind exceedance frequency
     #'
     #' @param reference_period Character vector. Reference period for calculating standardized exceedance frequency.
     #' @return Data.table. Standardized wind exceedance frequency data table.
+    #'
     std_wind_exceedance_frequency = function(reference_period) {
       exceedance_freq <- .self$wind_exceedance_frequency(reference_period)
       mean_frequency <- mean(exceedance_freq$exceedance_frequency, na.rm = TRUE)
@@ -218,7 +220,7 @@ WindComponent <- setRefClass(
       exceedance_freq[, std_frequency := (exceedance_frequency - mean_frequency) / std_frequency]
       return(exceedance_freq)
     },
-    
+
     #' Plot wind exceedance frequency
     #'
     #' @param lat Numeric. Latitude of the location to plot.
@@ -228,34 +230,33 @@ WindComponent <- setRefClass(
     plot_wind_exceedance_frequency = function(lat, lon, reference_period) {
       monthly_total_days_above <- .self$wind_exceedance_frequency(reference_period)
       location_data <- monthly_total_days_above[latitude == lat & longitude == lon]
-      
       if (nrow(location_data) == 0) {
         cat("No data available for the specified latitude and longitude.\n")
         return(NULL)
       }
-      
-      ggplot(location_data, aes(x = year_month, y = exceedance_frequency)) +
-        geom_line() +
-        scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
-        labs(title = paste("Wind Exceedance Frequency for Latitude", lat, "and Longitude", lon),
-             x = "Time", y = "Frequency") +
-        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+      ggplot2::ggplot(location_data, ggplot2::aes(x = year_month, y = exceedance_frequency)) +
+        ggplot2::geom_line() +
+        ggplot2::scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+        ggplot2::labs(title = paste("Wind Exceedance Frequency for Latitude", lat, "and Longitude", lon),
+                      x = "Time", y = "Frequency") +
+        ggplot2::theme(axis.text.x = element_text(angle = 45, hjust = 1))
     },
-    
+
     #' Plot wind exceedance frequency map
     #'
     #' @param reference_period Character vector. Reference period for calculating exceedance frequency.
     #' @return ggplot object. Map of wind exceedance frequency.
     plot_wind_exceedance_frequency_map = function(reference_period) {
       monthly_total_days_above <- .self$wind_exceedance_frequency(reference_period)
-      
-      ggplot(monthly_total_days_above, aes(x = longitude, y = latitude, fill = exceedance_frequency)) +
-        geom_tile() +
-        scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0.5) +
-        labs(title = "Wind Exceedance Frequency Map",
-             x = "Longitude", y = "Latitude", fill = "Frequency") +
-        theme_minimal() +
-        coord_fixed()
+
+      ggplot2::ggplot(monthly_total_days_above, ggplot2::aes(x = longitude, y = latitude, fill = exceedance_frequency)) +
+        ggplot2::geom_tile() +
+        ggplot2::scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0.5) +
+        ggplot2::labs(title = "Wind Exceedance Frequency Map",
+                      x = "Longitude", y = "Latitude", fill = "Frequency") +
+        ggplot2::theme_minimal() +
+        ggplot2::coord_fixed()
     }
   )
 )
