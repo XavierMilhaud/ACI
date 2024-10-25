@@ -22,7 +22,9 @@ ActuarialClimateIndex <- setRefClass(
     study_period = "character",  # Study period
     reference_period = "character"  # Reference period
   ),
+
   methods = list(
+
     #' Initialize ActuarialClimateIndex object
     #'
     #' This method initializes an object of the ActuarialClimateIndex class with the necessary data file paths and study/reference periods.
@@ -38,6 +40,7 @@ ActuarialClimateIndex <- setRefClass(
     #'
     #' @return A new ActuarialClimateIndex object
     #'
+    #' @export
     initialize = function(temperature_data_path, precipitation_data_path,
                           wind_u10_data_path, wind_v10_data_path,
                           country_abbrev, mask_data_path,
@@ -85,6 +88,7 @@ ActuarialClimateIndex <- setRefClass(
     #'
     #' @return A data.table containing the calculated values of the Actuarial Climate Index (ACI)
     #'
+    #' @export
     calculate_aci = function(factor = 1) {
 
       # Execute necessary calculations with the initialized components

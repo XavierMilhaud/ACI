@@ -3,6 +3,7 @@
 export(copy_and_rename_files_by_country)
 export(download_monthlyRLRdata)
 export(load_PSMSLdata)
+exportClasses(ActuarialClimateIndex)
 import(dplyr)
 importFrom(dplyr,filter)
 importFrom(methods,new)

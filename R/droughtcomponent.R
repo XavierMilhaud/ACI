@@ -31,6 +31,7 @@ DroughtComponent <- setRefClass(
     standardized_dry_days_dt = "data.table"  # Data table with standardized drought anomalies
   ),
   methods = list(
+
     initialize = function(precipitation_file, mask_file, reference_period = c("1961-01-01", "1990-12-31")) {
       #' Initialize a DroughtComponent object
       #'
@@ -41,6 +42,7 @@ DroughtComponent <- setRefClass(
       #' @param mask_file A string specifying the path to the netCDF file containing mask data.
       #' @param reference_period A character vector of length two specifying the start and end dates of the reference period
       #' for calculating anomalies. The default is c("1961-01-01", "1990-12-31").
+      #'
       .self$precipitation_file <- precipitation_file
       .self$mask_file <- mask_file
       .self$reference_period <- reference_period

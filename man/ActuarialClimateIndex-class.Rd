@@ -27,10 +27,6 @@
 \value{
 A new ActuarialClimateIndex object
 
-Calculate Actuarial Climate Index
-
-This method calculates the Actuarial Climate Index (ACI) using the initialized climate components.
-
 A data.table containing the calculated values of the Actuarial Climate Index (ACI)
 }
 \description{
