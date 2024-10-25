@@ -8,7 +8,7 @@ Authors@R: c(
   )
 Description: This package implements several methods that enable to
     compute the Actuarial Climate Index on different regions.
-License: GPL (>= 3)
+License: MIT + file LICENSE
 URL: https://github.com/XavierMilhaud/ACI-Rpackage
 BugReports: https://github.com/XavierMilhaud/ACI-Rpackage/issues
 Encoding: UTF-8
