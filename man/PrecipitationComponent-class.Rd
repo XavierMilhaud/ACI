@@ -38,23 +38,27 @@ This method applies the mask to the precipitation data, setting precipitation va
 indicates it should not be considered (e.g., non-land areas or outside of the study region).
 
 None
+
 Calculate monthly maximum precipitation anomalies
 
 This method calculates the monthly maximum of a rolling sum of precipitation and then standardizes these
 maxima based on a reference period. The standardized anomalies are stored for further analysis or visualization.
 
 None
+
 Visualize standardized monthly maximum precipitation anomalies
 
 This method creates a time series plot of the standardized monthly maximum precipitation anomalies for a specific
 location defined by latitude and longitude.
 
 A ggplot object showing the time series of standardized monthly maximum precipitation anomalies.
+
 Plot standardized anomaly map for a specific month and year
 
 This method creates a spatial plot of standardized precipitation anomalies for a specified month and year.
 
 A ggplot object showing the spatial distribution of standardized precipitation anomalies for the specified month and year.
+
 Plot mean Rx5day over time with smoothing
 
 This method creates a time series plot of the mean Rx5day over time with an optional smoothing period.

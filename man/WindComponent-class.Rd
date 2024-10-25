@@ -22,21 +22,26 @@
 }
 \value{
 Data.table. Data table with duplicates removed.
+
 Calculate wind power
 
 Data.table. Wind power data table.
 Calculate wind power thresholds
 
 Data.table. Wind power thresholds data table.
+
 Calculate days above wind power thresholds
 
 Data.table. Days above threshold data table.
+
 Calculate wind exceedance frequency
 
 Data.table. Wind exceedance frequency data table.
+
 Calculate standardized wind exceedance frequency
 
 Data.table. Standardized wind exceedance frequency data table.
+
 Plot wind exceedance frequency
 
 ggplot object. Plot of wind exceedance frequency for the specified location.

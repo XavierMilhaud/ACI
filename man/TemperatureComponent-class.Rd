@@ -21,6 +21,7 @@
 \item{reference_period}{A character vector specifying the start and end dates of the reference period.}
 
 \item{n}{An integer specifying the window size for the rolling mean.
+
 Plot standardized temperatures over time
 
 Plots the standardized T90 and T10 over time.}
@@ -31,51 +32,61 @@ Plots the standardized T90 and T10 over time.}
 }
 \value{
 A data.table with the 'time' column converted to POSIXct format.
+
 Calculate temperature extremum
 
 Calculates the maximum or minimum temperature for each day at each location.
 
 A data.table with the calculated temperature extremum.
+
 Calculate temperature percentiles
 
 Calculates the n-th percentile temperature for each day of the year over a reference period.
 
 A data.table with the calculated percentiles.
+
 Calculate T90 metric
 
 Calculates the T90 metric, which is the frequency of days with maximum temperatures above the 90th percentile.
 
 A data.table with the calculated T90 values.
+
 Calculate T10 metric
 
 Calculates the T10 metric, which is the frequency of days with minimum temperatures below the 10th percentile.
 
 A data.table with the calculated T10 values.
+
 Standardize a metric
 
 Standardizes a given metric over a reference period.
 
 A data.table with the standardized metric.
+
 Standardize T90 metric
 
 Standardizes the T90 metric over a reference period.
 
 A data.table with the standardized T90 values.
+
 Standardize T10 metric
 
 Standardizes the T10 metric over a reference period.
 
 A data.table with the standardized T10 values.
+
 Calculate days above temperature thresholds
 
 Calculates the number of days above the 90th percentile temperature threshold.
 
 A data.table with the number of days above the threshold.
+
 Calculate days below temperature thresholds
 
 Calculates the number of days below the 10th percentile temperature threshold.
 
 A data.table with the number of days below the threshold.
+
 Plot rolling mean of standardized temperatures
 
 Plots the rolling mean of standardized T10 and T90 over time.

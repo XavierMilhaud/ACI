@@ -10,8 +10,8 @@
 
 \item{mask_file}{A string specifying the path to the netCDF file containing mask data.}
 
-\item{reference_period}{A character vector specifying the start and end of the reference period. If NULL, the object's
-reference period is used.}
+\item{reference_period}{A character vector specifying the start and end of the reference period.
+If NULL, the object's reference period is used.}
 
 \item{selected_latitude}{A numeric value specifying the latitude of the location to visualize.}
 
@@ -33,22 +33,25 @@ This method calculates the maximum number of consecutive dry days (days with pre
 for each location and time period in the masked precipitation data.
 
 None
+
 Interpolate drought data between years
 
 This method interpolates drought data for each month between years to provide a continuous dataset. It handles the
 interpolation using a linear weighting scheme between consecutive years and repeats the last year's values.
 Standardize the drought metric
 
-This method standardizes the drought metric (maximum consecutive dry days) based on a reference period. The standardization
-is performed by calculating z-scores relative to the reference period.
+This method standardizes the drought metric (maximum consecutive dry days) based on a reference period.
+The standardization is performed by calculating z-scores relative to the reference period.
 
 None
+
 Visualize standardized drought anomalies over time
 
 This method creates a time series plot of the standardized drought anomalies for a specific location defined by
 latitude and longitude.
 
 A ggplot object showing the time series of standardized drought anomalies.
+
 Plot standardized drought anomaly map for a specific month and year
 
 This method creates a spatial plot of standardized drought anomalies for a specified month and year.
